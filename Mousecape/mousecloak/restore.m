@@ -45,12 +45,14 @@ void resetAllCursors() {
     NSArray<NSString *> *synonyms = MCArrowSynonyms();
     for (NSString *name in synonyms) {
         restoreCursorForIdentifier(backupStringForIdentifier(name));
+        break;
     }
 
     // And also restore I-beam synonyms
     NSArray<NSString *> *ibeamSynonyms = MCIBeamSynonyms();
     for (NSString *name in ibeamSynonyms) {
         restoreCursorForIdentifier(backupStringForIdentifier(name));
+        break;
     }
 
     // Restore auxiliary/core cursors
