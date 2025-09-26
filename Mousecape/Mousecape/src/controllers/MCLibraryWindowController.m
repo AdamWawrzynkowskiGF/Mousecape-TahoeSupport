@@ -36,31 +36,20 @@
 }
 
 - (void)composeAccessory {
-    NSView *themeFrame = [self.window.contentView superview];
-    NSView *accessory = self.appliedAccessory;
-    [accessory setTranslatesAutoresizingMaskIntoConstraints:NO];
-    
-    NSRect c  = themeFrame.frame;
-    NSRect aV = accessory.frame;
-    NSRect newFrame = NSMakeRect(
-                                 c.size.width - aV.size.width,	// x position
-                                 c.size.height - aV.size.height,	// y position
-                                 aV.size.width,	// width
-                                 aV.size.height);	// height
-    
-    [accessory setFrame:newFrame];
-    [themeFrame addSubview:accessory];
-    
-    [themeFrame addConstraints:[NSLayoutConstraint
-                                constraintsWithVisualFormat:@"H:|-(>=100)-[accessory(245)]-(0)-|"
-                                options:0
-                                metrics:nil
-                                views:NSDictionaryOfVariableBindings(accessory)]];
-    [themeFrame addConstraints:[NSLayoutConstraint
-                                constraintsWithVisualFormat:@"V:|-(0)-[accessory(20)]-(>=22)-|"
-                                options:0
-                                metrics:nil
-                                views:NSDictionaryOfVariableBindings(accessory)]];
+    // If we've already added it, avoid adding twice
+    if (self.appliedAccessory.superview != nil) {
+        [self.appliedAccessory removeFromSuperview];
+    }
+
+    // Make sure the accessory view opts into Auto Layout
+    self.appliedAccessory.translatesAutoresizingMaskIntoConstraints = NO;
+
+    NSTitlebarAccessoryViewController *accessoryVC = [[NSTitlebarAccessoryViewController alloc] init];
+    accessoryVC.view = self.appliedAccessory;
+    accessoryVC.layoutAttribute = NSLayoutAttributeRight; // Pin to the trailing side of the title bar
+
+    // This API handles correct placement relative to the window title & traffic lights
+    [self.window addTitlebarAccessoryViewController:accessoryVC];
 }
 
 - (NSUndoManager *)windowWillReturnUndoManager:(NSWindow *)window {

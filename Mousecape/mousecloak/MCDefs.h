@@ -72,4 +72,9 @@ extern NSString *MMGet(NSString *prompt);
 
 extern CGError MCIsCursorRegistered(CGSConnectionID cid, char *cursorName, bool *registered);
 extern BOOL MCCursorIsPointer(NSString *identifier);
+
+// Returns all known names the system may use for the Arrow cursor on this OS version
+extern NSArray<NSString *> *MCArrowSynonyms(void);
+// Returns all known names the system may use for the I-beam (text) cursor on this OS version
+extern NSArray<NSString *> *MCIBeamSynonyms(void);
 #endif

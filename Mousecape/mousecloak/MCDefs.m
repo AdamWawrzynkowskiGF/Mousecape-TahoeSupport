@@ -202,6 +202,65 @@ NSString *cursorIdentifierForName(NSString *name) {
     return UUID();
 }
 
+NSArray<NSString *> *MCArrowSynonyms(void) {
+    static NSArray<NSString *> *result = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        NSMutableOrderedSet *set = [[NSMutableOrderedSet alloc] init];
+        // Legacy identifiers that worked prior to macOS 26
+        [set addObject:@"com.apple.coregraphics.Arrow"];
+        [set addObject:@"com.apple.coregraphics.ArrowCtx"];
+
+        // Discover any system-defined cursor names that correspond to Arrow.
+        // Historically there are fewer than 64, but use a safe upper bound.
+        for (int cursorID = 0; cursorID < 128; cursorID++) {
+            char *cname = CGSCursorNameForSystemCursor((CGSCursorID)cursorID);
+            if (cname == NULL) {
+                continue;
+            }
+            NSString *name = [NSString stringWithUTF8String:cname];
+            if (name.length == 0) {
+                continue;
+            }
+            if ([name rangeOfString:@"arrow" options:NSCaseInsensitiveSearch].location != NSNotFound) {
+                [set addObject:name];
+            }
+        }
+        result = [[set array] retain];
+        [set release];
+    });
+    return result;
+}
+
+NSArray<NSString *> *MCIBeamSynonyms(void) {
+    static NSArray<NSString *> *result = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        NSMutableOrderedSet *set = [[NSMutableOrderedSet alloc] init];
+        // Legacy identifiers
+        [set addObject:@"com.apple.coregraphics.IBeam"];
+        [set addObject:@"com.apple.coregraphics.IBeamXOR"];
+
+        // Discover any system-defined cursor names that correspond to I-beam
+        for (int cursorID = 0; cursorID < 128; cursorID++) {
+            char *cname = CGSCursorNameForSystemCursor((CGSCursorID)cursorID);
+            if (cname == NULL) {
+                continue;
+            }
+            NSString *name = [NSString stringWithUTF8String:cname];
+            if (name.length == 0) {
+                continue;
+            }
+            if ([name rangeOfString:@"ibeam" options:NSCaseInsensitiveSearch].location != NSNotFound) {
+                [set addObject:name];
+            }
+        }
+        result = [[set array] retain];
+        [set release];
+    });
+    return result;
+}
+
 CGError MCIsCursorRegistered(CGSConnectionID cid, char *cursorName, bool *registered) {
 //    if (CGSIsCursorRegistered != NULL) {
 //        return CGSIsCursorRegistered(cid, cursorName, registered);

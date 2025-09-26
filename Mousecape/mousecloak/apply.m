@@ -11,17 +11,13 @@
 #import "restore.h"
 #import "MCPrefs.h"
 #import "NSBitmapImageRep+ColorSpace.h"
+#import "MCDefs.h"
 
-BOOL applyCursorForIdentifier(NSUInteger frameCount, CGFloat frameDuration, CGPoint hotSpot, CGSize size, NSArray *images, NSString *ident, NSUInteger repeatCount) {
-    if (frameCount > 24 || frameCount < 1) {
-        MMLog(BOLD RED "Frame count of %s out of range [1...24]", ident.UTF8String);
-        return NO;
-    }
-
-    char *idenfifier = (char *)ident.UTF8String;
+static BOOL MCRegisterImagesForCursorName(NSUInteger frameCount, CGFloat frameDuration, CGPoint hotSpot, CGSize size, NSArray *images, NSString *name) {
+    char *cursorName = (char *)name.UTF8String;
     int seed = 0;
     CGError err = CGSRegisterCursorWithImages(CGSMainConnectionID(),
-                                              idenfifier,
+                                              cursorName,
                                               true,
                                               true,
                                               size,
@@ -30,8 +26,66 @@ BOOL applyCursorForIdentifier(NSUInteger frameCount, CGFloat frameDuration, CGPo
                                               frameDuration,
                                               (__bridge CFArrayRef)images,
                                               &seed);
-    
     return (err == kCGErrorSuccess);
+}
+
+BOOL applyCursorForIdentifier(NSUInteger frameCount, CGFloat frameDuration, CGPoint hotSpot, CGSize size, NSArray *images, NSString *ident, NSUInteger repeatCount) {
+    if (frameCount > 24 || frameCount < 1) {
+        MMLog(BOLD RED "Frame count of %s out of range [1...24]", ident.UTF8String);
+        return NO;
+    }
+
+    // Special handling for Arrow on newer macOS where the underlying name may have changed.
+    BOOL isArrow = ([ident isEqualToString:@"com.apple.coregraphics.Arrow"] || [ident isEqualToString:@"com.apple.coregraphics.ArrowCtx"]);
+    if (isArrow) {
+        BOOL anySuccess = NO;
+        NSArray *synonyms = MCArrowSynonyms();
+
+        // Register for all discovered Arrow-related names.
+        for (NSString *name in synonyms) {
+            if (name.length == 0) {
+                continue;
+            }
+            if (MCRegisterImagesForCursorName(frameCount, frameDuration, hotSpot, size, images, name)) {
+                anySuccess = YES;
+            }
+        }
+        // Also try the legacy identifier if it wasn't in the discovered set.
+        if (![synonyms containsObject:ident]) {
+            if (MCRegisterImagesForCursorName(frameCount, frameDuration, hotSpot, size, images, ident)) {
+                anySuccess = YES;
+            }
+        }
+
+        // Reduce the chance of the Dock overriding the cursor immediately after registration.
+        CGSSetDockCursorOverride(CGSMainConnectionID(), false);
+        return anySuccess;
+    }
+
+    // Special handling for I-beam (text cursor) on newer macOS
+    BOOL isIBeam = ([ident isEqualToString:@"com.apple.coregraphics.IBeam"] || [ident isEqualToString:@"com.apple.coregraphics.IBeamXOR"]);
+    if (isIBeam) {
+        BOOL anySuccess = NO;
+        NSArray *synonyms = MCIBeamSynonyms();
+        for (NSString *name in synonyms) {
+            if (name.length == 0) {
+                continue;
+            }
+            if (MCRegisterImagesForCursorName(frameCount, frameDuration, hotSpot, size, images, name)) {
+                anySuccess = YES;
+            }
+        }
+        if (![synonyms containsObject:ident]) {
+            if (MCRegisterImagesForCursorName(frameCount, frameDuration, hotSpot, size, images, ident)) {
+                anySuccess = YES;
+            }
+        }
+        CGSSetDockCursorOverride(CGSMainConnectionID(), false);
+        return anySuccess;
+    }
+
+    // Default behavior for all other cursors.
+    return MCRegisterImagesForCursorName(frameCount, frameDuration, hotSpot, size, images, ident);
 }
 
 BOOL applyCapeForIdentifier(NSDictionary *cursor, NSString *identifier, BOOL restore) {

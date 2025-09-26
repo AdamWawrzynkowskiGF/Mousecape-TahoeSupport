@@ -8,6 +8,7 @@
 
 #import "backup.h"
 #import "apply.h"
+#import "MCDefs.h"
 
 NSString *backupStringForIdentifier(NSString *identifier) {
     return [NSString stringWithFormat:@"com.alexzielenski.mousecape.%@", identifier];
@@ -48,6 +49,18 @@ void backupAllCursors() {
     while ((key = defaultCursors[i]) != nil) {
         backupCursorForIdentifier(key);
         i++;
+    }
+
+    // Additionally, back up any Arrow synonyms the system may use (for macOS 26+ compatibility)
+    NSArray<NSString *> *synonyms = MCArrowSynonyms();
+    for (NSString *name in synonyms) {
+        backupCursorForIdentifier(name);
+    }
+
+    // And also back up I-beam synonyms
+    NSArray<NSString *> *ibeamSynonyms = MCIBeamSynonyms();
+    for (NSString *name in ibeamSynonyms) {
+        backupCursorForIdentifier(name);
     }
     // no need to backup core cursors
     
